@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
+/* Custom fonts */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-roboto: 'Roboto', sans-serif;
+
+  /* Blue 1 */
+  --blue1-tint4: #C2D4FA;
+  --blue1-tint3: #7BA3F5;
+  --blue1-tint2: #6392F3;
+  --blue1-tint1: #4B82F1;
+  --blue1-main: #3572EF;
+  --blue1-shad1: #1C61ED;
+  --blue1-shad2: #1255DE;
+  --blue1-shad3: #104CC6;
+  --blue1-shad4: #0E43AF;
+
+  /* Blue 2 */
+  --blue2-tint4: #BCB5ED;
+  --blue2-tint3: #A9A1E8;
+  --blue2-tint2: #8478DE;
+  --blue2-tint1: #5E4FD4;
+  --blue2-main: #4C3BCF;
+  --blue2-shad1: #402FC1;
+  --blue2-shad2: #322598;
+  --blue2-shad3: #251B6F;
+  --blue2-shad4: #171146;
+
+  /* Neutral (Greys) */
+  --neutral-white: #FFFFFF;
+  --neutral-grey1: #F7F7F7;
+  --neutral-grey2: #DEDEDE;
+  --neutral-grey3: #C4C4C4;
+  --neutral-grey4: #ABABAB;
+  --neutral-grey5: #919191;
+  --neutral-grey6: #787878;
+  --neutral-grey7: #5E5E5E;
+  --neutral-black: #2B2B2B;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Override Tailwind font-sans */
+.font-sans {
+  font-family: var(--font-roboto), sans-serif;
 }
