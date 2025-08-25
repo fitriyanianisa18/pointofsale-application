@@ -34,16 +34,6 @@ export default function Settings() {
         });
       } catch (err) {
         console.log("Gagal ambil profil:", err.message);
-
-        // ✅ fallback dummy data (sementara)
-        const dummyUser = {
-          username: "anisa",
-          role: "admin",
-          email: "anisa@example.com",
-          status: "active",
-        };
-        setUser(dummyUser);
-        setFormData(dummyUser);
       }
     };
 
@@ -81,10 +71,6 @@ export default function Settings() {
       setSuccess(true);
     } catch (error) {
       console.log("Gagal memperbarui profil:", error.message);
-
-      // ✅ Dummy sukses (sementara)
-      setUser(formData);
-      setSuccess(true);
     }
   };
 

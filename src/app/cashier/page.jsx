@@ -54,39 +54,18 @@ export default function Dashboard() {
   };
 
   // Fetch menu data from API
-  useEffect(() => {
-    // contoh dummy menu
-    const dummyMenu = [
-      {
-        id: 1,
-        name: "Nasi Goreng",
-        description: "Nasi goreng spesial dengan telur",
-        price: 20000,
-        category: "food",
-        image: "assets/image/nasgor.jpeg",
-      },
-      {
-        id: 2,
-        name: "Es Teh Manis",
-        description: "Minuman segar teh manis dingin",
-        price: 5000,
-        category: "beverage",
-        image: "assets/image/esteh.jpg",
-      },
-    ];
-    setMenuItems(dummyMenu);
-
-    const fetchMenus = async () => {
-      try {
-        const response = await fetch("http://localhost:4000/menu");
-        const data = await response.json();
-        setMenuItems(data);
-      } catch (error) {
-        console.error("Failed to fetch menu data:", error);
-      }
-    };
-    fetchMenus();
-  }, []);
+useEffect(() => {
+  const fetchMenus = async () => {
+    try {
+      const response = await fetch("http://localhost:4000/menu");
+      const data = await response.json();
+      setMenuItems(data);
+    } catch (error) {
+      console.error("Failed to fetch menu data:", error);
+    }
+  };
+  fetchMenus();
+}, []);
 
   const openDetailMenu = (menu) => {
     setSelectedMenu(menu);
@@ -141,67 +120,62 @@ export default function Dashboard() {
   const tax = Math.round(subtotal * 0.1);
   const total = subtotal + tax;
 
-  // Submit Order → DISABLED BACKEND
+  // Submit Order to backend only
   const handleSubmitOrder = async () => {
     if (orderItems.length === 0 || !customerName || !amountReceived) {
       alert("Please add items to the order, fill customer details, and provide payment.");
       return;
     }
 
-    const dummyOrderData = {
-      orderNo: "ORD-001",
-      date: new Date().toLocaleString(),
-      customer: customerName,
-      type: orderType,
-      items: orderItems,
-      subTotal: subtotal,
-      tax,
-      total,
-      amountReceived,
+    const orderPayload = {
+      customer_name: customerName,
+      order_type: orderType,
+      table_number: tableNumber,
+      items: orderItems.map(item => ({
+        menu_id: item.id,
+        quantity: item.quantity,
+        notes: item.notes || ""
+      })),
+      amount_received: amountReceived
     };
-
-    setOrderData(dummyOrderData);
-    setShowReceiptModal(true);
-    setOrderItems([]);
-    setCustomerName("");
-    setTableNumber("");
-    setAmountReceived(0);
 
     try {
       const response = await fetch("http://localhost:4000/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(orderPayload),
       });
+      if (response.ok) {
+        const data = await response.json();
+        setOrderData(data.order); // assuming backend returns { order: {...} }
+        setShowReceiptModal(true);
+        setOrderItems([]);
+        setCustomerName("");
+        setTableNumber("");
+        setAmountReceived(0);
+        // Refresh menu setelah order
+        fetchMenus();
+      } else {
+        alert("Failed to submit order.");
+      }
     } catch (error) {
       console.error("Error submitting order:", error);
     }
   };
 
-  // Archive 
+  // Archive
   const openArchiveModal = async () => {
     setShowArchiveModal(true);
-
-    // contoh dummy archive
-    const dummyArchive = [
-      {
-        order_id: 101,
-        no_order: "ORD-1001",
-        date: new Date(),
-        order_type: "dine_in",
-        customer_name: "Andi",
-        total: 50000,
-      },
-    ];
-    setArchiveOrders(dummyArchive);
-
     try {
       const response = await fetch("http://localhost:4000/orders");
       if (response.ok) {
         const data = await response.json();
         setArchiveOrders(data.orders);
+      } else {
+        setArchiveOrders([]);
       }
     } catch (error) {
+      setArchiveOrders([]);
       console.error("Error fetching archive orders:", error);
     }
   };

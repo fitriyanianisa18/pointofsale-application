@@ -34,50 +34,96 @@ export default function Catalog() {
     }));
   };
 
+  // Handle file change (for add/edit)
+  const handleFileChange = (e) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      image: e.target.files[0],
+    }));
+  };
+
   // Handle submit add menu
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    // --- backend fetch (comment) ---
-    // const response = await fetch("http://localhost:4000/menu", {...})
-    alert("Form submitted (Add Menu), tapi backend belum aktif.");
+    // Validasi field wajib
+    if (!formData.name || !formData.category || !formData.price || !formData.description || !formData.image) {
+      alert("Semua field wajib diisi, termasuk gambar!");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("image", formData.image); // pastikan field gambar bernama 'image'
+    form.append("name", formData.name);
+    form.append("category", formData.category);
+    form.append("price", Number(formData.price));
+    form.append("description", formData.description);
+    try {
+      const response = await fetch("http://localhost:4000/menu", {
+        method: "POST",
+        body: form
+      });
+      const data = await response.json();
+      if (response.ok) {
+        await fetchMenus();
+        setShowForm(false);
+        setFormData({ image: null, name: "", category: "", price: "", description: "" });
+      } else {
+        alert(data.message || "Gagal menambah menu");
+      }
+    } catch (err) {
+      alert("Gagal menambah menu: " + err.message);
+    }
   };
 
   // Handle submit edit menu
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    // --- backend fetch (comment) ---
-    // const response = await fetch(`http://localhost:4000/menu/${selectedMenu.id}`, {...})
-    alert("Form submitted (Edit Menu), tapi backend belum aktif.");
-  };
-
-  // File upload handler
-  const handleFileChange = (e) => {
-    setFormData({
-      ...formData,
-      image: e.target.files[0],
+    const form = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      form.append(key, value);
     });
+    try {
+      await fetch(`http://localhost:4000/menu/${selectedMenu.id}`, {
+        method: "PUT",
+        body: form
+      });
+      setIsEditMode(false);
+      setShowForm(false);
+      setSelectedMenu(null);
+      setFormData({ image: null, name: "", category: "", price: "", description: "" });
+      fetchMenus();
+    } catch (err) {
+      alert("Gagal edit menu");
+    }
   };
 
-  // Fetch menu list (dummy untuk sementara)
-  useEffect(() => {
-    // --- backend fetch (comment) ---
-    // const response = await fetch("http://localhost:4000/menu")
-    // const data = await response.json()
-    // setMenuItems(data)
+  const fetchMenus = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("http://localhost:4000/menu");
+      const data = await response.json();
+      setMenuItems(data);
+    } catch (err) {
+      console.error("Failed to fetch menu:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Dummy data (sementara tanpa backend)
-    setMenuItems([
-      { id: 1, name: "Nasi Goreng", category: "food", price: "15000", description: "Enak dan gurih", image: "/assets/image/nasgor.jpeg" },
-      { id: 2, name: "Es Teh Manis", category: "beverage", price: "5000", description: "Segar dan manis", image: "/assets/image/esteh.jpg" },
-    ]);
+  useEffect(() => {
+    fetchMenus();
   }, []);
 
-  // Delete menu item
+  // Delete menu item (with confirm)
   const deleteMenuItem = async (menuId) => {
-    // --- backend fetch (comment) ---
-    // await fetch(`http://localhost:4000/menu/${menuId}`, { method: "DELETE" })
-    setMenuItems(menuItems.filter((item) => item.id !== menuId));
-    setSelectedMenu(null);
+    if (!window.confirm("Yakin ingin menghapus menu ini?")) return;
+    try {
+      await fetch(`http://localhost:4000/menu/${menuId}`, { method: "DELETE" });
+      setSelectedMenu(null);
+      fetchMenus();
+    } catch (err) {
+      alert("Gagal hapus menu");
+    }
   };
 
   // Filter items by category
@@ -92,9 +138,22 @@ export default function Catalog() {
       <div className="w-2/3 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">List Menu</h2>
-          <p className="text-sm text-[var(--neutral-grey5)]">
-            Total <span className="text-black"> {filteredItems.length} Menu </span>
-          </p>
+          <div className="flex gap-2 items-center">
+            <p className="text-sm text-[var(--neutral-grey5)]">
+              Total <span className="text-black"> {filteredItems.length} Menu </span>
+            </p>
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700"
+              onClick={() => {
+                setShowForm(true);
+                setSelectedMenu(null);
+                setIsEditMode(false);
+                setFormData({ image: null, name: "", category: "", price: "", description: "" });
+              }}
+            >
+              + Add Menu
+            </button>
+          </div>
         </div>
 
         {/* Filter Tabs */}
@@ -127,7 +186,17 @@ export default function Catalog() {
               }`}
             >
               <div className="relative h-40 w-full mb-2 overflow-hidden rounded">
-                <Image src={item.image} alt={item.name} layout="fill" objectFit="cover" />
+                <Image
+                  src={item.image
+                    ? item.image.startsWith('http')
+                      ? item.image
+                      : `http://localhost:4000/${item.image.replace(/^\/+/, '')}`
+                    : '/assets/image/login.png'}
+                  alt={item.name}
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover"
+                />
                 <span className="absolute top-1 right-1 bg-[var(--blue1-main)] text-white text-xs px-2 py-1 rounded-3xl">
                   {item.category}
                 </span>
@@ -139,20 +208,41 @@ export default function Catalog() {
                   {item.price}{" "}
                   <span className="text-[var(--neutral-grey5)] font-light text-xs">/ portion</span>
                 </p>
-                <button
-                  onClick={() => {
-                    if (selectedMenu && selectedMenu.id === item.id) {
-                      setSelectedMenu(null);
-                      setIsEditMode(false);
-                    } else {
+                <div className="flex gap-2">
+                  <button
+                    className="bg-yellow-400 text-white px-2 py-1 rounded text-xs"
+                    onClick={() => {
                       setSelectedMenu(item);
-                      setIsEditMode(false);
+                      setIsEditMode(true);
                       setShowForm(false);
-                    }
-                  }}
-                >
-                  <Image src="/assets/icons/maximize.svg" alt="maximize" width={18} height={18} />
-                </button>
+                      setFormData({
+                        image: null,
+                        name: item.name,
+                        category: item.category,
+                        price: item.price,
+                        description: item.description,
+                      });
+                    }}
+                  >Edit</button>
+                  <button
+                    className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                    onClick={() => deleteMenuItem(item.id)}
+                  >Delete</button>
+                  <button
+                    onClick={() => {
+                      if (selectedMenu && selectedMenu.id === item.id) {
+                        setSelectedMenu(null);
+                        setIsEditMode(false);
+                      } else {
+                        setSelectedMenu(item);
+                        setIsEditMode(false);
+                        setShowForm(false);
+                      }
+                    }}
+                  >
+                    <Image src="/assets/icons/maximize.svg" alt="maximize" width={18} height={18} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -174,20 +264,44 @@ export default function Catalog() {
           <div className="w-full mt-2">
             <form className="w-full flex flex-col gap-4">
               <div>
-                <Image
-                  src={selectedMenu.image}
-                  alt={selectedMenu.name}
-                  width={400}
-                  height={300}
-                  className="rounded-md mx-auto"
-                />
-              </div>
+                  <Image
+                    src={selectedMenu.image
+                      ? selectedMenu.image.startsWith('http')
+                        ? selectedMenu.image
+                        : `http://localhost:4000/${selectedMenu.image.replace(/^\/+/, '')}`
+                      : '/assets/image/login.png'}
+                    alt={selectedMenu.name}
+                    width={400}
+                    height={300}
+                    className="rounded-md mx-auto"
+                  />
+                </div>
               <input type="text" value={selectedMenu.name} readOnly className="w-full mt-1 p-3 border border-gray-200 rounded-md text-black" />
               <input type="text" value={selectedMenu.category} readOnly className="w-full mt-1 p-3 border border-gray-200 rounded-md text-black" />
               <input type="text" value={selectedMenu.price} readOnly className="w-full mt-1 p-3 border border-gray-200 rounded-md text-black" />
               <textarea value={selectedMenu.description} readOnly className="w-full mt-1 p-3 border border-gray-200 rounded-md text-black" />
             </form>
           </div>
+        )}
+
+        {/* Jika Edit Menu */}
+        {selectedMenu && isEditMode && (
+          <form className="w-full flex flex-col gap-4" onSubmit={handleEditSubmit}>
+            <input type="file" name="image" onChange={handleFileChange} />
+            <input type="text" name="name" value={formData.name} onChange={handleFormChange} placeholder="Enter name here..." className="w-full mt-1 p-3 border border-gray-200 rounded-md text-gray-700" />
+            <select name="category" value={formData.category} onChange={handleFormChange} className="w-full border rounded-md mt-1 p-3 border-gray-200 text-gray-700">
+              <option value="" disabled>Select Category</option>
+              <option value="food">Food</option>
+              <option value="beverage">Beverage</option>
+              <option value="dessert">Dessert</option>
+            </select>
+            <input type="number" name="price" value={formData.price} onChange={handleFormChange} placeholder="Enter price here..." className="w-full p-3 mt-1 border border-gray-200 rounded-md text-gray-700" />
+            <textarea name="description" value={formData.description} onChange={handleFormChange} placeholder="Enter description here..." className="w-full p-3 mt-1 border border-gray-200 rounded-md text-gray-700" />
+            <div className="flex gap-2">
+              <button type="submit" className="bg-blue-600 text-white rounded-md p-2 cursor-pointer">Update Menu</button>
+              <button type="button" className="bg-gray-400 text-white rounded-md p-2 cursor-pointer" onClick={() => { setIsEditMode(false); setFormData({ image: null, name: "", category: "", price: "", description: "" }); }}>Cancel</button>
+            </div>
+          </form>
         )}
 
         {/* Jika Add Menu */}

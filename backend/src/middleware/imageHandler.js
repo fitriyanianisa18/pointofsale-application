@@ -5,7 +5,9 @@ const multer = require('multer');
 // Konfigurasi penyimpanan gambar
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads')); 
+    // Hardcode path upload ke folder yang sudah ada: /home/anisa/pos-app/backend/uploads
+    const uploadPath = path.resolve(__dirname, '..', 'uploads');
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const fileExtension = path.extname(file.originalname);
@@ -25,7 +27,6 @@ const upload = multer({
     }
   }
 });
-
 
 // Ekspor middleware
 module.exports = { upload };

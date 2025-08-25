@@ -26,7 +26,7 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-  const [data, setData] = useState([]); // dummy nanti
+  const [data, setData] = useState([]);
   const [selectedStat, setSelectedStat] = useState(null);
   const [chartData, setChartData] = useState({
     labels: [],

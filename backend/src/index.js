@@ -25,7 +25,7 @@ app.use(cookieParser());
 app.use("/menu", menuRoutes);
 app.use("/auth", authRoutes); // semua auth ditangani di sini
 app.use("/orders", orderRoutes);
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/assets", express.static(path.join(__dirname, "../public/assets")));
 
 // Cek koneksi database dan start server
@@ -42,5 +42,9 @@ async function startServer() {
     process.exit(1);
   }
 }
+
+app.use((err, req, res, next) => {
+  res.status(500).json({ message: err.message || 'Internal Server Error' });
+});
 
 startServer();
