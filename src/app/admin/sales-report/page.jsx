@@ -83,7 +83,7 @@ export default function Dashboard() {
     }
   }, [data]);
 
-  // 🔥 Bagian fetch API backend di-comment
+  // 🔥 Bagian fetch API
   
   useEffect(() => {
     const fetchData = async () => {
@@ -107,29 +107,9 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  // Dummy data contoh biar chart & stat tetap tampil
-  useEffect(() => {
-    setData([
-      {
-        total: 50000,
-        items: [
-          { name: "Nasi Goreng", menu_category: "food", price: 20000, quantity: 2 },
-          { name: "Es Teh", menu_category: "beverage", price: 5000, quantity: 2 },
-        ],
-      },
-      {
-        total: 30000,
-        items: [
-          { name: "Mie Ayam", menu_category: "food", price: 15000, quantity: 2 },
-        ],
-      },
-    ]);
-  }, []);
-
   // Stat card click handler
   const openStatDetail = async (category) => {
     setSelectedStat({ title: category, details: [] });
-    
     setLoading(true);
     setError(null);
     try {
@@ -146,15 +126,6 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-
-    // Dummy data
-    setSelectedStat({
-      title: category,
-      details: [
-        { name: "Nasi Goreng", total: 40000 },
-        { name: "Es Teh", total: 10000 },
-      ],
-    });
   };
 
   const closeStatDetail = () => {

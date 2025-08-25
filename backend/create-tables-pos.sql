@@ -1,11 +1,22 @@
+-- Active: 1755615876148@@127.0.0.1@5432
+
+-- Tabel role
+CREATE TABLE role (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(20) NOT NULL UNIQUE
+);
+
+ALTER TABLE "user" RENAME COLUMN roleId TO  role_id;
+
+DROP TABLE IF EXISTS transaction CASCADE;
 -- Tabel user
 CREATE TABLE "user" (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL,
-    status VARCHAR(20),
+    role_id INTEGER REFERENCES role(id) ON DELETE SET NULL,
+    status VARCHAR(20) DEFAULT 'active',
     picture VARCHAR(255)
 );
 

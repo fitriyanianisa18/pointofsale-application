@@ -58,29 +58,6 @@ export default function SalesReport() {
     };
 
     fetchData();
-
-    // Dummy data
-    const dummyOrders = [
-      {
-        order_id: 1,
-        no_order: "ORD-001",
-        date: new Date().toISOString(),
-        customer_name: "Budi",
-        order_type: "Dine In",
-        sub_total: 40000,
-        tax: 4000,
-        total: 44000,
-        amount_received: 50000,
-        amount_change: 6000,
-        items: [
-          { menu_name: "Nasi Goreng", menu_category: "food", quantity: 2, price: 20000 },
-          { menu_name: "Es Teh", menu_category: "beverage", quantity: 1, price: 5000 },
-        ],
-      },
-    ];
-    setData(dummyOrders);
-    setFilteredData(dummyOrders);
-    setLoading(false);
   }, []);
 
   const openStatDetail = async (category) => {
@@ -95,12 +72,6 @@ export default function SalesReport() {
       const responseData = await response.json();
       setSelectedStat({ title: category, details: responseData.details });
 
-      // Dummy stat detail
-      const dummyDetails = [
-        { name: "Nasi Goreng", total: 5 },
-        { name: "Es Teh", total: 10 },
-      ];
-      setSelectedStat({ title: category, details: dummyDetails });
     } catch (e) {
       setError(e);
       console.error(`Gagal mengambil detail statistik untuk ${category}:`, e);

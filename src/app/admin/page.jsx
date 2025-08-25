@@ -1,6 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Bar } from "react-chartjs-2";
 import StatCard from "../components/statcard";
 import {
@@ -14,7 +16,7 @@ import {
   Legend,
 } from "chart.js";
 
-//  ChartJS components
+// ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -26,15 +28,12 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
+  const router = useRouter();
   const [data, setData] = useState([]);
   const [selectedStat, setSelectedStat] = useState(null);
-  const [chartData, setChartData] = useState({
-    labels: [],
-    datasets: [],
-  });
+  const [chartData, setChartData] = useState({ labels: [], datasets: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [today, setToday] = useState("");
 
   useEffect(() => {
@@ -47,153 +46,120 @@ export default function Dashboard() {
     setToday(dateStr);
   }, []);
 
-  // bar chart data
+  const getToken = () => localStorage.getItem("token");
+
+  // Fetch all orders
   useEffect(() => {
-    if (data.length > 0) {
-      const categorySales = data.reduce((acc, order) => {
-        order.items.forEach((item) => {
-          const category = item.menu_category;
-          const price = parseFloat(item.price) || 0;
-          const quantity = parseInt(item.quantity) || 0;
-          if (
-            category === "food" ||
-            category === "beverage" ||
-            category === "dessert"
-          ) {
-            acc[category] = (acc[category] || 0) + price * quantity;
-          }
-        });
-        return acc;
-      }, {});
+    const fetchOrders = async () => {
+      const token = getToken();
+      if (!token) {
+        router.push("/auth/login");
+        setLoading(false);
+        return;
+      }
 
-      const labels = Object.keys(categorySales);
-      const salesData = labels.map((category) => categorySales[category] || 0);
-
-      setChartData({
-        labels: labels,
-        datasets: [
-          {
-            label: "Total Sales",
-            data: salesData,
-            backgroundColor: ["#0E43AF", "#3572EF", "#C2D4FA"],
-            fill: true,
-          },
-        ],
-      });
-    }
-  }, [data]);
-
-  // Fetch data from API   
-  useEffect(() => {
-    const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("http://localhost:4000/orders");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const res = await fetch("http://localhost:4000/orders", {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          localStorage.removeItem("token");
+          router.push("/auth/login");
+          throw new Error(`HTTP error! status: ${res.status}`);
         }
-        const responseData = await response.json();
-        setData(responseData.orders);
+
+        const result = await res.json();
+        setData(result.orders || []);
       } catch (e) {
         setError(e);
-        console.error("Failed to fetch data:", e);
+        console.error("Failed to fetch orders:", e);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
-  
+    fetchOrders();
+  }, [router]);
 
-  // Stat card click handler
+  // Prepare chart data
+  useEffect(() => {
+    if (data.length === 0) return;
+
+    const categorySales = data.reduce((acc, order) => {
+      order.items.forEach((item) => {
+        const category = item.menu_category;
+        const price = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 0;
+        acc[category] = (acc[category] || 0) + price * quantity;
+      });
+      return acc;
+    }, {});
+
+    const labels = Object.keys(categorySales);
+    const salesData = labels.map((category) => categorySales[category]);
+
+    setChartData({
+      labels,
+      datasets: [
+        {
+          label: "Total Sales",
+          data: salesData,
+          backgroundColor: ["#0E43AF", "#3572EF", "#C2D4FA"],
+          fill: true,
+        },
+      ],
+    });
+  }, [data]);
+
+  // Open stat per category
   const openStatDetail = async (category) => {
+    const token = getToken();
+    if (!token) {
+      router.push("/auth/login");
+      return;
+    }
+
     setSelectedStat({ title: category, details: [] });
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`http://localhost:4000/orders/${category}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const res = await fetch(`http://localhost:4000/orders/${category}`, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        localStorage.removeItem("token");
+        router.push("/auth/login");
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-      const responseData = await response.json();
-      setSelectedStat({ title: category, details: responseData.details });
+
+      const result = await res.json();
+      setSelectedStat({ title: category, details: result.details || [] });
     } catch (e) {
       setError(e);
-      console.error(`Gagal mengambil detail statistik untuk ${category}:`, e);
+      console.error(`Gagal fetch detail ${category}:`, e);
       setSelectedStat({ title: category, details: [] });
     } finally {
       setLoading(false);
     }
-    
   };
 
-  const closeStatDetail = () => {
-    setSelectedStat(null);
-  };
+  const closeStatDetail = () => setSelectedStat(null);
 
-  // Dummy data
-  useEffect(() => {
-    const dummyData = [
-      {
-        total: 50000,
-        items: [
-          { menu_category: "food", price: 20000, quantity: 2, name: "Nasi Goreng" },
-          { menu_category: "beverage", price: 10000, quantity: 1, name: "Es Teh" },
-        ],
-      },
-      {
-        total: 30000,
-        items: [
-          { menu_category: "dessert", price: 15000, quantity: 2, name: "Puding" },
-        ],
-      },
-    ];
-    setData(dummyData);
-    setLoading(false);
-  }, []);
-
-  // Calculate stats
+  // Stats calculation
   const totalOrders = data.length;
-  const totalOmzet = data.reduce(
-    (sum, order) => sum + (parseFloat(order.total) || 0),
-    0
-  );
-  const allMenuOrders = data.reduce((sum, order) => {
-    return (
-      sum +
-      order.items.reduce((itemSum, item) => itemSum + (item.quantity || 0), 0)
-    );
-  }, 0);
+  const totalOmzet = data.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+  const allMenuOrders = data.reduce((sum, o) => sum + o.items.reduce((s, i) => s + (i.quantity || 0), 0), 0);
+  const totalFoodOrders = data.reduce((sum, o) => sum + o.items.filter((i) => i.menu_category === "food").reduce((s, i) => s + (i.quantity || 0), 0), 0);
+  const totalBeverageOrders = data.reduce((sum, o) => sum + o.items.filter((i) => i.menu_category === "beverage").reduce((s, i) => s + (i.quantity || 0), 0), 0);
+  const totalDessertOrders = data.reduce((sum, o) => sum + o.items.filter((i) => i.menu_category === "dessert").reduce((s, i) => s + (i.quantity || 0), 0), 0);
 
-  const totalFoodOrders = data.reduce((sum, order) => {
-    return (
-      sum +
-      order.items
-        .filter((item) => item.menu_category === "food")
-        .reduce((itemSum, item) => itemSum + (item.quantity || 0), 0)
-    );
-  }, 0);
-
-  const totalBeverageOrders = data.reduce((sum, order) => {
-    return (
-      sum +
-      order.items
-        .filter((item) => item.menu_category === "beverage")
-        .reduce((itemSum, item) => itemSum + (item.quantity || 0), 0)
-    );
-  }, 0);
-
-  const totalDessertOrders = data.reduce((sum, order) => {
-    return (
-      sum +
-      order.items
-        .filter((item) => item.menu_category === "dessert")
-        .reduce((itemSum, item) => itemSum + (item.quantity || 0), 0)
-    );
-  }, 0);
+  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (error) return <div className="text-red-500">Error: {error.message}</div>;
 
   return (
     <div className="space-y-6">
@@ -205,39 +171,12 @@ export default function Dashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatCard
-          title="Total Orders"
-          value={totalOrders}
-          iconSrc="/assets/icons/receipt.svg"
-        />
-        <StatCard
-          title="Total Omzet"
-          value={totalOmzet}
-          iconSrc="/assets/icons/wallet-money.svg"
-        />
-        <StatCard
-          title="All Menu Orders"
-          value={allMenuOrders}
-          iconSrc="/assets/icons/document.svg"
-        />
-        <StatCard
-          title="Foods"
-          value={totalFoodOrders}
-          iconSrc="/assets/icons/reserve.svg"
-          detailOnClick={() => openStatDetail("food")}
-        />
-        <StatCard
-          title="Beverages"
-          value={totalBeverageOrders}
-          iconSrc="/assets/icons/coffee.svg"
-          detailOnClick={() => openStatDetail("beverage")}
-        />
-        <StatCard
-          title="Desserts"
-          value={totalDessertOrders}
-          iconSrc="/assets/icons/cake.svg"
-          detailOnClick={() => openStatDetail("dessert")}
-        />
+        <StatCard title="Total Orders" value={totalOrders} iconSrc="/assets/icons/receipt.svg" />
+        <StatCard title="Total Omzet" value={totalOmzet} iconSrc="/assets/icons/wallet-money.svg" />
+        <StatCard title="All Menu Orders" value={allMenuOrders} iconSrc="/assets/icons/document.svg" />
+        <StatCard title="Foods" value={totalFoodOrders} iconSrc="/assets/icons/reserve.svg" detailOnClick={() => openStatDetail("food")} />
+        <StatCard title="Beverages" value={totalBeverageOrders} iconSrc="/assets/icons/coffee.svg" detailOnClick={() => openStatDetail("beverage")} />
+        <StatCard title="Desserts" value={totalDessertOrders} iconSrc="/assets/icons/cake.svg" detailOnClick={() => openStatDetail("dessert")} />
       </div>
 
       {/* Chart Section */}
@@ -248,57 +187,31 @@ export default function Dashboard() {
         <Bar data={chartData} />
       </div>
 
-      {/* Modal Detail Stat */}
+      {/* Modal */}
       {selectedStat && (
-        <div className="fixed inset-0 bg-black/30 shadow-md flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-md w-[90%] max-w-md space-y-4 relative">
-            <button
-              onClick={closeStatDetail}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
-              aria-label="Close"
-            >
-              &times;
-            </button>
+            <button onClick={closeStatDetail} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
             <h4 className="text-2xl font-medium">{selectedStat.title}</h4>
-
-            <div className="relative w-full mb-4">
-              <Image
-                src="/assets/icons/search-normal.svg"
-                alt="Search Icon"
-                width={16}
-                height={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2"
-              />
-              <input
-                type="text"
-                placeholder="Enter the keyword here..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--neutral-grey2)] focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm font-light text-[var(--neutral-grey3)]"
-              />
-            </div>
-
-            {selectedStat.details && selectedStat.details.length > 0 ? (
-              <div className="space-y-2">
-                <table className="w-full text-sm mt-2">
-                  <thead className="bg-gray-100">
-                    <tr className="text-left font-medium">
-                      <th className="p-3">Menu Name</th>
-                      <th className="p-3">Total Sales</th>
+            {selectedStat.details.length > 0 ? (
+              <table className="w-full text-sm mt-2">
+                <thead className="bg-gray-100">
+                  <tr className="text-left font-medium">
+                    <th className="p-3">Menu Name</th>
+                    <th className="p-3">Total Sales</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedStat.details.map((item, idx) => (
+                    <tr key={idx} className="border-b border-gray-100">
+                      <td className="p-3">{item.name}</td>
+                      <td className="p-3">{item.total}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {selectedStat.details.map((items, idx) => (
-                      <tr key={idx} className="border-b border-gray-100">
-                        <td className="p-3">{items.name}</td>
-                        <td className="p-3">{items.total}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             ) : (
-              <p className="text-sm text-gray-500">
-                Tidak ada data yang tersedia.
-              </p>
+              <p className="text-sm text-gray-500">Tidak ada data yang tersedia.</p>
             )}
           </div>
         </div>

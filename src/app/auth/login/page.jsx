@@ -20,9 +20,8 @@ export default function Login() {
       setLoading(false);
       return;
     }
+
     try {
-      // Bagian backend login
-      
       const response = await fetch("http://localhost:4000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,13 +34,35 @@ export default function Login() {
       if (!response.ok) {
         setError(data.message || `Login gagal! Status: ${response.status}`);
       } else {
-        console.log(`Login ${data.role} berhasil:`, data);
-        router.push(`/${data.role}`);
+        console.log("Login berhasil:", data);
+
+        // simpan token & role ke localStorage
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+        if (data.role) {
+          localStorage.setItem("role", data.role);
+        }
+
+        // cek apakah token tersimpan
+        const savedToken = localStorage.getItem("token");
+        if (!savedToken) {
+          setError("Token gagal disimpan, coba lagi.");
+          return;
+        }
+
+        // redirect sesuai role
+        if (data.role === "admin") {
+          router.push("/admin");
+        } else if (data.role === "cashier") {
+          router.push("/cashier");
+        } else {
+          router.push("/dashboard");
+        }
       }
-      
-    } catch (error) {
+    } catch (err) {
       setError("Terjadi kesalahan saat menghubungi server.");
-      console.error("Error saat login:", error);
+      console.error("Error saat login:", err);
     } finally {
       setLoading(false);
     }
@@ -52,11 +73,10 @@ export default function Login() {
       <Image
         src="/assets/image/login.png"
         alt="Login Background"
-        layout="fill"
-        objectFit="cover"
-        className="z-0"
+        fill
+        className="z-0 object-cover"
       />
-      <div className="absolute inset-0 z-10" />
+      <div className="absolute inset-0 z-10 bg-black/30" />
       <div className="absolute inset-0 z-20 flex items-center justify-center px-6">
         <div className="bg-white rounded-2xl shadow-xl p-10 w-[400px] max-w-full">
           <div className="flex flex-col items-center justify-center gap-2 mb-6">
@@ -105,11 +125,8 @@ export default function Login() {
             </div>
 
             {error && (
-              <div
-                className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
-                role="alert"
-              >
-                <strong className="font-bold">Error!</strong>
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                <strong className="font-bold">Error!</strong>{" "}
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
@@ -126,8 +143,8 @@ export default function Login() {
           </form>
 
           <div className="text-center mt-4 text-sm text-gray-600">
-            Don't have an account?{" "}
-            <a href="http://localhost:3000/auth/register" className="text-blue-600 font-medium hover:underline">
+            Don&apos;t have an account?{" "}
+            <a href="/auth/register" className="text-blue-600 font-medium hover:underline">
               Register
             </a>
           </div>
