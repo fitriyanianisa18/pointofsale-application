@@ -1,5 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
+import Typography from "@mui/material/Typography";
+import TableContainer from "@mui/material/TableContainer";
+import Table from "@mui/material/Table";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
+import TableBody from "@mui/material/TableBody";
+import Paper from "@mui/material/Paper";
 import Image from "next/image";
 import StatCard from "../../components/statcard";
 import TransactionTable from "../../components/transactionTable";
@@ -86,23 +94,7 @@ export default function SalesReport() {
   };
 
   const openTransactionDetail = (transaction) => {
-    const formattedTransaction = {
-      orderNo: transaction.no_order,
-      date: new Date(transaction.date).toLocaleDateString("id-ID"),
-      customer: transaction.customer_name,
-      type: transaction.order_type,
-      items: transaction.items.map((item) => ({
-        name: item.menu_name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-      subTotal: transaction.sub_total,
-      tax: transaction.tax,
-      total: transaction.total,
-      amountReceived: transaction.amount_received,
-      amountChange: transaction.amount_change,
-    };
-    setSelectedTransaction(formattedTransaction);
+    setSelectedTransaction(transaction);
   };
 
   const closeTransactionDetail = () => {
@@ -284,24 +276,21 @@ export default function SalesReport() {
               </h2>
               <div className="bg-[var(--neutral-grey1)] p-4 rounded-md">
                 <p className="text-[var(--neutral-grey7)] text-sm mb-1">
-                  <span className="text-[var(--neutral-grey6)] font-light">
-                    No Order
-                  </span>
-                  {selectedTransaction.orderNo}
+                  <span className="text-[var(--neutral-grey6)] font-light">No Order: </span>
+                  {selectedTransaction.no_order ?? selectedTransaction.noOrder ?? "-"}
                 </p>
                 <p className="text-[var(--neutral-grey7)] text-sm mb-1">
-                  <span className="text-[var(--neutral-grey6)] font-light">
-                    Date
-                  </span>
-                  {selectedTransaction.date}
+                  <span className="text-[var(--neutral-grey6)] font-light">Date: </span>
+                  {selectedTransaction.date ? new Date(selectedTransaction.date).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "-"}
                 </p>
                 <p className="text-[var(--neutral-grey7)] text-sm mb-1">
-                  <span className="text-[var(--neutral-grey6)] font-light">
-                    Customer Name
-                  </span>
-                  {selectedTransaction.customer}
+                  <span className="text-[var(--neutral-grey6)] font-light">Customer Name: </span>
+                  {selectedTransaction.customer_name ?? selectedTransaction.customer ?? "-"}
                 </p>
-                <p className="text-sm mb-1">{selectedTransaction.type}</p>
+                <p className="text-[var(--neutral-grey7)] text-sm mb-1">
+                  <span className="text-[var(--neutral-grey6)] font-light">Order Type: </span>
+                  {selectedTransaction.order_type === "dine_in" ? "Dine In" : selectedTransaction.order_type === "take_away" ? "Take Away" : "-"}
+                </p>
 
                 <hr className=" border-t border-[var(--neutral-grey2)] mb-4" />
 
@@ -336,13 +325,13 @@ export default function SalesReport() {
                         Sub Total
                       </span>
                       <span className="text-[var(--neutral-grey7)]">
-                        {formatRupiah(selectedTransaction.subTotal)}
+                        {formatRupiah(Number(selectedTransaction.sub_total ?? selectedTransaction.subTotal ?? 0))}
                       </span>
                     </p>
                     <p className="flex justify-between items-center text-sm mb-2">
                       <span className="text-[var(--neutral-grey5)]">Tax</span>
                       <span className="text-[var(--neutral-grey7)]">
-                        {formatRupiah(selectedTransaction.tax)}
+                        {formatRupiah(Number(selectedTransaction.tax ?? 0))}
                       </span>
                     </p>
 
@@ -351,7 +340,7 @@ export default function SalesReport() {
                     <p className="flex justify-between items-center mb-4">
                       <span className="text-lg">Total</span>
                       <span className="text-xl font-semibold">
-                        {formatRupiah(selectedTransaction.total)}
+                        {formatRupiah(Number(selectedTransaction.total ?? 0))}
                       </span>
                     </p>
                     <p className="flex justify-between items-center text-sm mb-2">
@@ -359,7 +348,7 @@ export default function SalesReport() {
                         Diterima
                       </span>
                       <span className="text-black">
-                        {formatRupiah(selectedTransaction.amountReceived)}
+                        {formatRupiah(Number(selectedTransaction.amount_received ?? selectedTransaction.amountReceived ?? 0))}
                       </span>
                     </p>
                     <p className="flex justify-between items-center text-sm">
@@ -367,7 +356,7 @@ export default function SalesReport() {
                         Kembalian
                       </span>
                       <span className="text-black">
-                        {formatRupiah(selectedTransaction.amountChange)}
+                        {formatRupiah(Number(selectedTransaction.amount_change ?? selectedTransaction.amountChange ?? 0))}
                       </span>
                     </p>
                   </>

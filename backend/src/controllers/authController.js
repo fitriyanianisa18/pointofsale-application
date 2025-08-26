@@ -216,6 +216,24 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+// ===================== UPLOAD PICTURE ====================
+exports.uploadPicture = async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized.' });
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
+  try {
+    const imagePath = `uploads/${req.file.filename}`;
+    const updatedUser = await prisma.user.update({
+      where: { id: Number(userId) },
+      data: { picture: imagePath },
+    });
+    return res.status(200).json({ picture: imagePath });
+  } catch (error) {
+    console.error('Error upload picture:', error);
+    return res.status(500).json({ message: 'Terjadi kesalahan server.' });
+  }
+};
+
 // ===================== GET CURRENT USER ==================
 exports.getCurrentUser = async (req, res) => {
   const userId = req.user?.userId;

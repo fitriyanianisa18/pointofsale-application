@@ -54,7 +54,6 @@ export default function Dashboard() {
   };
 
   // Fetch menu data from API
-useEffect(() => {
   const fetchMenus = async () => {
     try {
       const response = await fetch("http://localhost:4000/menu");
@@ -64,8 +63,9 @@ useEffect(() => {
       console.error("Failed to fetch menu data:", error);
     }
   };
-  fetchMenus();
-}, []);
+  useEffect(() => {
+    fetchMenus();
+  }, []);
 
   const openDetailMenu = (menu) => {
     setSelectedMenu(menu);
@@ -127,16 +127,31 @@ useEffect(() => {
       return;
     }
 
+    // Ambil userId dari localStorage jika ada
+    let userId = null;
+    if (typeof window !== "undefined") {
+      userId = localStorage.getItem("userId") || null;
+    }
+
+    const subtotal = orderItems.reduce((sum, item) => sum + (parseInt(item.price) * item.quantity), 0);
+    const tax = Math.round(subtotal * 0.1);
+    const total = subtotal + tax;
+
     const orderPayload = {
-      customer_name: customerName,
-      order_type: orderType,
-      table_number: tableNumber,
+      customerName,
+      tableNumber,
+      orderType,
       items: orderItems.map(item => ({
-        menu_id: item.id,
+        menuId: item.id,
         quantity: item.quantity,
+        price: parseInt(item.price),
         notes: item.notes || ""
       })),
-      amount_received: amountReceived
+      subtotal,
+      tax,
+      total,
+      userId,
+      amountReceived
     };
 
     try {
@@ -147,7 +162,24 @@ useEffect(() => {
       });
       if (response.ok) {
         const data = await response.json();
-        setOrderData(data.order); // assuming backend returns { order: {...} }
+        // Ambil detail order dari GET /orders
+        try {
+          const ordersRes = await fetch("http://localhost:4000/orders");
+          if (ordersRes.ok) {
+            const ordersData = await ordersRes.json();
+            // Cari order dengan orderId yang baru
+            const detailOrder = ordersData.orders.find(o => o.order_id === data.orderId);
+            if (detailOrder) {
+              setOrderData(detailOrder);
+            } else {
+              setOrderData({ noOrder: data.noOrder });
+            }
+          } else {
+            setOrderData({ noOrder: data.noOrder });
+          }
+        } catch (err) {
+          setOrderData({ noOrder: data.noOrder });
+        }
         setShowReceiptModal(true);
         setOrderItems([]);
         setCustomerName("");
@@ -606,84 +638,100 @@ useEffect(() => {
               Transaction Details
             </h2>
 
-            <div className="bg-[var(--neutral-grey1)] p-4 rounded-md">
+            <div id="receipt-area" className="bg-[var(--neutral-grey1)] p-4 rounded-md">
               <p className="text-[var(--neutral-grey7)] text-sm mb-1">
-                <span className="text-[var(--neutral-grey6)] font-light">
-                  No Order
-                </span>
-                {orderData.orderNo}
+                <span className="text-[var(--neutral-grey6)] font-light">Order Type: </span>
+                {orderData.order_type === "dine_in" ? "Dine In" : orderData.order_type === "take_away" ? "Take Away" : "-"}
               </p>
               <p className="text-[var(--neutral-grey7)] text-sm mb-1">
-                <span className="text-[var(--neutral-grey6)] font-light">
-                  Date
-                </span>
-                {orderData.date}
+                <span className="text-[var(--neutral-grey6)] font-light">No Order: </span>
+                {orderData.no_order ?? orderData.noOrder ?? "-"}
               </p>
               <p className="text-[var(--neutral-grey7)] text-sm mb-1">
-                <span className="text-[var(--neutral-grey6)] font-light">
-                  Customer Name
-                </span>
-                {orderData.customer}
+                <span className="text-[var(--neutral-grey6)] font-light">Date: </span>
+                {orderData.date ? new Date(orderData.date).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "-"}
+              </p>
+              <p className="text-[var(--neutral-grey7)] text-sm mb-1">
+                <span className="text-[var(--neutral-grey6)] font-light">Customer Name: </span>
+                {orderData.customer_name ?? "-"}
               </p>
               <p className="text-sm mb-1">{orderData.type}</p>
 
               <hr className=" border-t border-[var(--neutral-grey2)] mb-4" />
 
               <ul>
-                {orderData.items.map((item, index) => (
-                  <li
-                    key={index}
-                    className="flex justify-between items-center mb-2"
-                  >
-                    <div className="flex flex-col items-start">
-                      <span className="text-2xl font-medium">{item.name}</span>
-                      <span className="text-xs text-[var(--neutral-grey7)]">
-                        {item.quantity} x {formatRupiah(item.price)}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {formatRupiah(item.price * item.quantity)}
-                    </span>
-                  </li>
-                ))}
+                {orderData?.items?.map ? (
+                  orderData.items.map((item, index) => (
+                    <li key={index} className="mb-2">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 'normal' }}>{item.quantity} x {formatRupiah(item.price)}</span>
+                        <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{formatRupiah(item.price * item.quantity)}</span>
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li>Order detail tidak tersedia.</li>
+                )}
               </ul>
 
               <hr className=" border border-dashed border-[var(--neutral-grey3)] mb-4 mt-4" />
 
-              {/* Sub Total, Tax, Total, Kembalian */}
+              {/* Sub Total, Tax, Total, Diterima, Kembalian, Tombol Cetak */}
               {orderData && (
                 <>
-                  <p className="flex justify-between items-center text-sm mb-2">
-                    <span className="text-[var(--neutral-grey5)]">
-                      Sub Total
-                    </span>
-                    <span className="text-[var(--neutral-grey7)]">
-                      {formatRupiah(orderData.subTotal)}
-                    </span>
-                  </p>
-                  <p className="flex justify-between items-center text-sm mb-2">
-                    <span className="text-[var(--neutral-grey5)]">Tax</span>
-                    <span className="text-[var(--neutral-grey7)]">
-                      {formatRupiah(orderData.tax)}
-                    </span>
-                  </p>
-
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                    <span>Sub Total</span>
+                    <span>{formatRupiah(Number(orderData.sub_total ?? 0))}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                    <span>Tax</span>
+                    <span>{formatRupiah(Number(orderData.tax ?? 0))}</span>
+                  </div>
                   <hr className="border border-dashed border-[var(--neutral-grey3)] mb-4 mt-4" />
-
-                  <p className="flex justify-between items-center mb-4">
-                    <span className="text-lg">Total</span>
-                    <span className="text-xl font-semibold">
-                      {formatRupiah(orderData.total)}
-                    </span>
-                  </p>
-                  <p className="flex justify-between items-center text-sm mb-2">
-                    <span className="text-[var(--neutral-grey5)]">
-                      Diterima
-                    </span>
-                    <span className="text-black">
-                      {formatRupiah(orderData.amountReceived)}
-                    </span>
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+                    <span>Total</span>
+                    <span>{formatRupiah(Number(orderData.total ?? 0))}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                    <span>Diterima</span>
+                    <span>{formatRupiah(Number(orderData.amount_received ?? 0))}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                    <span>Kembalian</span>
+                    <span>{formatRupiah(Number(orderData.amount_change ?? 0))}</span>
+                  </div>
+                  <button
+                    className="mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-md text-sm"
+                    onClick={() => {
+                      // Ambil elemen struk tanpa tombol cetak
+                      const receiptArea = document.getElementById('receipt-area');
+                      if (!receiptArea) return;
+                      // Clone node agar bisa modifikasi tanpa mengubah tampilan asli
+                      const clone = receiptArea.cloneNode(true);
+                      // Hapus tombol cetak dari clone
+                      const btn = clone.querySelector('button');
+                      if (btn) btn.remove();
+                      // Buat window print
+                      const b5WidthPx = Math.round(176 * 3.78);
+                      const b5HeightPx = Math.round(250 * 3.78); 
+                      const printWindow = window.open('', '', `height=${b5HeightPx},width=${b5WidthPx}`);
+                      printWindow.document.write('<html><head><title>Struk Transaksi</title>');
+                      printWindow.document.write('<style>body{font-family:sans-serif;padding:16px;} .struk-title{text-align:center;font-size:24px;font-weight:bold;margin-bottom:16px;} .struk-footer{text-align:center;margin-top:32px;font-size:16px;font-weight:bold;} .struk-section{margin-bottom:8px;} .struk-label{font-weight:bold;} .struk-value{float:right;} .struk-list{margin:8px 0;} .struk-total{font-size:18px;font-weight:bold;}</style>');
+                      printWindow.document.write('</head><body>');
+                      // Tambahkan header
+                      printWindow.document.write('<div class="struk-title">Struk Transaksi</div>');
+                      printWindow.document.write(clone.innerHTML);
+                      // Tambahkan ucapan di bawah
+                      printWindow.document.write('<div class="struk-footer">Selamat menikmati.</div>');
+                      printWindow.document.write('</body></html>');
+                      printWindow.document.close();
+                      printWindow.focus();
+                      printWindow.print();
+                      printWindow.close();
+                    }}
+                  >
+                    Cetak Struk ke PDF
+                  </button>
                 </>
               )}
             </div>
@@ -742,8 +790,7 @@ useEffect(() => {
                         No Order: {order.no_order}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Date: {new Date(order.date).toLocaleDateString()}{" "}
-                        {new Date(order.date).toLocaleTimeString()}
+                        Date: {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString()}
                       </p>
                       <p className="text-sm text-gray-600">
                         Type: {order.order_type}
@@ -755,7 +802,14 @@ useEffect(() => {
                         Total: {formatRupiah(order.total)}
                       </p>
                     </div>
-                    <button className="bg-green-500 text-white px-3 py-2 rounded-md text-xs">
+                    <button
+                      className="bg-green-500 text-white px-3 py-2 rounded-md text-xs"
+                      onClick={() => {
+                        setOrderData(order);
+                        setShowArchiveModal(false);
+                        setShowReceiptModal(true);
+                      }}
+                    >
                       View Details
                     </button>
                   </div>

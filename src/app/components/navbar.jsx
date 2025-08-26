@@ -75,7 +75,7 @@ export default function Navbar() {
       {/* User Info */}
       <div className="flex items-center gap-3">
         <Image
-          src="/assets/image/user.png"
+          src={user?.picture ? (user.picture.startsWith('http') ? user.picture : `http://localhost:4000/${user.picture.replace(/^\/+/,'')}`) : "/assets/image/user.png"}
           alt="User Avatar"
           width={50}
           height={50}

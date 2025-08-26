@@ -142,17 +142,6 @@ export default function Catalog() {
             <p className="text-sm text-[var(--neutral-grey5)]">
               Total <span className="text-black"> {filteredItems.length} Menu </span>
             </p>
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700"
-              onClick={() => {
-                setShowForm(true);
-                setSelectedMenu(null);
-                setIsEditMode(false);
-                setFormData({ image: null, name: "", category: "", price: "", description: "" });
-              }}
-            >
-              + Add Menu
-            </button>
           </div>
         </div>
 
@@ -255,6 +244,18 @@ export default function Catalog() {
           <h2 className="text-xl font-semibold">
             {showForm ? "Add Menu" : selectedMenu ? "Menu Detail" : "Add Menu"}
           </h2>
+          <button
+            className="bg-blue-600 text-white w-8 h-8 rounded-md flex items-center justify-center text-2xl hover:bg-blue-700"
+            title="Add Menu"
+            onClick={() => {
+              setShowForm(true);
+              setSelectedMenu(null);
+              setIsEditMode(false);
+              setFormData({ image: null, name: "", category: "", price: "", description: "" });
+            }}
+          >
+            +
+          </button>
         </div>
 
         <hr className="w-full border-t border-gray-200 my-2" />
@@ -287,7 +288,31 @@ export default function Catalog() {
         {/* Jika Edit Menu */}
         {selectedMenu && isEditMode && (
           <form className="w-full flex flex-col gap-4" onSubmit={handleEditSubmit}>
-            <input type="file" name="image" onChange={handleFileChange} />
+            <div
+              className="w-full flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-md p-4 mb-2 bg-blue-50 cursor-pointer"
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => {
+                e.preventDefault();
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  handleFileChange({ target: { files: e.dataTransfer.files } });
+                }
+              }}
+            >
+              {formData.image ? (
+                <>
+                  <img src={URL.createObjectURL(formData.image)} alt="preview" className="w-32 h-32 object-cover rounded mb-2" />
+                  <button type="button" className="text-xs text-red-500 mb-2" onClick={() => setFormData(prev => ({ ...prev, image: null }))}>Remove</button>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-500 mb-2">Drag or drop your file here</p>
+                  <label className="bg-blue-600 text-white px-3 py-1 rounded-md cursor-pointer text-sm">
+                    Choose File
+                    <input type="file" name="image" onChange={handleFileChange} className="hidden" />
+                  </label>
+                </>
+              )}
+            </div>
             <input type="text" name="name" value={formData.name} onChange={handleFormChange} placeholder="Enter name here..." className="w-full mt-1 p-3 border border-gray-200 rounded-md text-gray-700" />
             <select name="category" value={formData.category} onChange={handleFormChange} className="w-full border rounded-md mt-1 p-3 border-gray-200 text-gray-700">
               <option value="" disabled>Select Category</option>
@@ -307,7 +332,31 @@ export default function Catalog() {
         {/* Jika Add Menu */}
         {showForm && (
           <form className="w-full flex flex-col gap-4" onSubmit={handleFormSubmit}>
-            <input type="file" name="image" onChange={handleFileChange} />
+            <div
+              className="w-full flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-md p-4 mb-2 bg-blue-50 cursor-pointer"
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => {
+                e.preventDefault();
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  handleFileChange({ target: { files: e.dataTransfer.files } });
+                }
+              }}
+            >
+              {formData.image ? (
+                <>
+                  <img src={URL.createObjectURL(formData.image)} alt="preview" className="w-32 h-32 object-cover rounded mb-2" />
+                  <button type="button" className="text-xs text-red-500 mb-2" onClick={() => setFormData(prev => ({ ...prev, image: null }))}>Remove</button>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-500 mb-2">Drag or drop your file here</p>
+                  <label className="bg-blue-600 text-white px-3 py-1 rounded-md cursor-pointer text-sm">
+                    Choose File
+                    <input type="file" name="image" onChange={handleFileChange} className="hidden" />
+                  </label>
+                </>
+              )}
+            </div>
             <input type="text" name="name" value={formData.name} onChange={handleFormChange} placeholder="Enter name here..." className="w-full mt-1 p-3 border border-gray-200 rounded-md text-gray-700" />
             <select name="category" value={formData.category} onChange={handleFormChange} className="w-full border rounded-md mt-1 p-3 border-gray-200 text-gray-700">
               <option value="" disabled>Select Category</option>

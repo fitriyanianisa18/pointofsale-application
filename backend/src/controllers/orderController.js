@@ -13,6 +13,7 @@ function generateOrderCode() {
 }
 
 exports.createOrder = async (req, res) => {
+  console.log("ORDER PAYLOAD:", req.body);
   const {
     customerName,
     tableNumber,
@@ -33,7 +34,7 @@ exports.createOrder = async (req, res) => {
     !subtotal ||
     !tax ||
     !total ||
-    !userId ||
+    userId === undefined ||
     !amountReceived
   ) {
     return res
@@ -111,6 +112,7 @@ exports.createOrder = async (req, res) => {
     }
   } catch (error) {
     console.error("Gagal membuat order & transaksi:", error);
+    console.log("DETAIL ERROR ORDER:", error);
     res.status(500).json({
       message: "Gagal membuat order dan transaksi",
       error: error.message,
@@ -195,27 +197,22 @@ exports.getAllOrders = async (req, res) => {
 exports.getOrderStatCategory = async (req, res) => {
   const category = req.params.category; // ambil kategori dari URL
   try {
-    const [rows] = await db.execute(
+    const result = await db.query(
       `
-            SELECT 
-              m.name AS name,
-              SUM(oi.quantity) AS total
-            FROM 
-              \`order_item\` oi
-            JOIN 
-              \`order\` o ON oi.order_id = o.id
-            JOIN 
-              menu m ON oi.menu_id = m.id
-            WHERE 
-              m.category = ?
-            GROUP BY 
-              m.name
-          `,
+        SELECT 
+          m.name AS name,
+          SUM(oi.quantity) AS total
+        FROM order_item oi
+        JOIN "order" o ON oi.order_id = o.id
+        JOIN menu m ON oi.menu_id = m.id
+        WHERE m.category = $1
+        GROUP BY m.name
+      `,
       [category]
     );
 
     res.status(200).json({
-      details: rows,
+      details: result.rows,
     });
   } catch (err) {
     console.error("Error getOrderStatCategory:", err);

@@ -6,6 +6,9 @@ import Image from "next/image";
 export default function Settings() {
   const [user, setUser] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [picture, setPicture] = useState(null); // path gambar user
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState(null); // preview sebelum upload
 
   const [formData, setFormData] = useState({
     username: "",
@@ -21,9 +24,7 @@ export default function Settings() {
         const res = await fetch("http://localhost:4000/auth/me", {
           credentials: "include",
         });
-
         if (!res.ok) throw new Error("Gagal ambil profil");
-
         const data = await res.json();
         setUser(data);
         setFormData({
@@ -32,11 +33,12 @@ export default function Settings() {
           email: data.email || "",
           status: data.status || "",
         });
+        // Jika ada gambar user, set ke state picture
+  if (data.picture) setPicture(data.picture);
       } catch (err) {
         console.log("Gagal ambil profil:", err.message);
       }
     };
-
     fetchProfile();
   }, []);
 
@@ -84,20 +86,113 @@ export default function Settings() {
       {/* Account */}
       <h5 className="text-xl font-medium">Account</h5>
       <div className="flex items-center gap-4">
-        <Image
-          src="/assets/image/user.png"
-          alt="User Avatar"
-          height={100}
-          width={100}
-          className="rounded-full object-cover"
-        />
-        <button className="px-4 py-2 bg-[var(--blue1-main)] border border-[var(--blue1-main)] rounded-xl text-sm text-white hover:bg-blue-700">
+        {/* Gambar user, fallback ke default */}
+        {picture ? (
+          <img
+            src={picture.startsWith('http') ? picture : `http://localhost:4000/${picture.replace(/^\/+/,'')}`}
+            alt="User Avatar"
+            height={100}
+            width={100}
+            className="rounded-full object-cover w-[100px] h-[100px]"
+          />
+        ) : (
+          <Image
+            src="/assets/image/user.png"
+            alt="User Avatar"
+            height={100}
+            width={100}
+            className="rounded-full object-cover"
+          />
+        )}
+        <button
+          className="px-4 py-2 bg-[var(--blue1-main)] border border-[var(--blue1-main)] rounded-xl text-sm text-white hover:bg-blue-700"
+          onClick={() => setShowUpload(true)}
+        >
           Change Picture
         </button>
-        <button className="px-4 py-2 border border-[var(--blue1-main)] rounded-xl text-sm text-[var(--blue1-main)] hover:bg-[var(--neutral-grey2)]">
+        <button
+          className="px-4 py-2 border border-[var(--blue1-main)] rounded-xl text-sm text-[var(--blue1-main)] hover:bg-[var(--neutral-grey2)]"
+          onClick={async () => {
+            // update ke backend, set picture null
+            await fetch("http://localhost:4000/auth/upload-picture", {
+              method: "POST",
+              credentials: "include",
+              body: new FormData(), // kosong
+            });
+            setPicture(null);
+          }}
+        >
           Delete Picture
         </button>
       </div>
+
+      {/* Upload modal/box */}
+      {showUpload && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-md w-[90%] max-w-md space-y-4 relative">
+            <button
+              onClick={() => { setShowUpload(false); setUploadPreview(null); }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <h3 className="text-lg font-semibold mb-2">Change Picture</h3>
+            <div
+              className="w-full flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-md p-4 mb-2 bg-blue-50 cursor-pointer"
+              onDragOver={e => e.preventDefault()}
+              onDrop={async e => {
+                e.preventDefault();
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  setUploadPreview(e.dataTransfer.files[0]);
+                  // upload ke backend
+                  const form = new FormData();
+                  form.append("picture", e.dataTransfer.files[0]);
+                  const res = await fetch("http://localhost:4000/auth/upload-picture", {
+                    method: "POST",
+                    credentials: "include",
+                    body: form,
+                  });
+                  const data = await res.json();
+                  if (res.ok && data.picture) setPicture(data.picture);
+                  setShowUpload(false);
+                  setUploadPreview(null);
+                }
+              }}
+            >
+              {uploadPreview ? (
+                <>
+                  <img src={URL.createObjectURL(uploadPreview)} alt="preview" className="w-32 h-32 object-cover rounded mb-2" />
+                  <button type="button" className="text-xs text-red-500 mb-2" onClick={() => setUploadPreview(null)}>Remove</button>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-500 mb-2">Drag or drop your file here</p>
+                  <label className="bg-blue-600 text-white px-3 py-1 rounded-md cursor-pointer text-sm">
+                    Choose File
+                    <input type="file" name="image" onChange={async e => {
+                      if (e.target.files && e.target.files[0]) {
+                        setUploadPreview(e.target.files[0]);
+                        const form = new FormData();
+                        form.append("picture", e.target.files[0]);
+                        const res = await fetch("http://localhost:4000/auth/upload-picture", {
+                          method: "POST",
+                          credentials: "include",
+                          body: form,
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.picture) setPicture(data.picture);
+                        setShowUpload(false);
+                        setUploadPreview(null);
+                      }
+                    }} className="hidden" />
+                  </label>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Account Details */}
       <form onSubmit={handleSubmit}>

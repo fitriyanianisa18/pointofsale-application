@@ -5,8 +5,8 @@ const multer = require('multer');
 // Konfigurasi penyimpanan gambar
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Hardcode path upload ke folder yang sudah ada: /home/anisa/pos-app/backend/uploads
-    const uploadPath = path.resolve(__dirname, '..', 'uploads');
+    // Pastikan path upload ke /home//pos-app/backend/uploads
+    const uploadPath = path.resolve(__dirname, '../../uploads');
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
