@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Bar } from "react-chartjs-2";
+import dayjs from "dayjs";
 import StatCard from "../components/statcard";
 import {
   Chart as ChartJS,
@@ -27,14 +28,19 @@ ChartJS.register(
   Legend
 );
 
-export default function Dashboard() {
+function Dashboard() {
   const router = useRouter();
   const [data, setData] = useState([]);
   const [selectedStat, setSelectedStat] = useState(null);
   const [chartData, setChartData] = useState({ labels: [], datasets: [] });
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [today, setToday] = useState("");
+  // Filter states
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [category, setCategory] = useState("");
 
   useEffect(() => {
     const dateStr = new Date().toLocaleDateString("id-ID", {
@@ -84,35 +90,67 @@ export default function Dashboard() {
     fetchOrders();
   }, [router]);
 
-  // Prepare chart data
+  // Prepare chart data: satu chart, X = tanggal, tiap tanggal ada 3 bar (foods, beverages, desserts) atau satu bar jika filter kategori
   useEffect(() => {
     if (data.length === 0) return;
 
-    const categorySales = data.reduce((acc, order) => {
-      order.items.forEach((item) => {
-        const category = item.menu_category;
-        const price = parseFloat(item.price) || 0;
-        const quantity = parseInt(item.quantity) || 0;
-        acc[category] = (acc[category] || 0) + price * quantity;
-      });
-      return acc;
-    }, {});
+    // Filter data by date
+    let filtered = data;
+    if (startDate) {
+      filtered = filtered.filter(order => dayjs(order.date).isAfter(dayjs(startDate).subtract(1, 'day')));
+    }
+    if (endDate) {
+      filtered = filtered.filter(order => dayjs(order.date).isBefore(dayjs(endDate).add(1, 'day')));
+    }
 
-    const labels = Object.keys(categorySales);
-    const salesData = labels.map((category) => categorySales[category]);
+    // Kategori
+    const categories = [
+      { key: 'food', label: 'Foods', color: '#0E43AF' },
+      { key: 'beverage', label: 'Beverages', color: '#3572EF' },
+      { key: 'dessert', label: 'Desserts', color: '#C2D4FA' },
+    ];
+
+    // Ambil semua tanggal unik
+    const allDatesSet = new Set();
+    filtered.forEach(order => {
+      const dateStr = dayjs(order.date).format('YYYY-MM-DD');
+      allDatesSet.add(dateStr);
+    });
+    const allDates = Array.from(allDatesSet).sort();
+
+    // Jika filter kategori, hanya tampilkan dataset kategori tsb
+    let filteredCategories = categories;
+    if (selectedCategory) {
+      filteredCategories = categories.filter(cat => cat.key === selectedCategory);
+    }
+
+    // Untuk setiap kategori, buat array omzet per tanggal
+    const datasets = filteredCategories.map(cat => {
+      const omzetPerDay = {};
+      allDates.forEach(date => { omzetPerDay[date] = 0; });
+      filtered.forEach(order => {
+        const dateStr = dayjs(order.date).format('YYYY-MM-DD');
+        let totalOrder = 0;
+        order.items.forEach(item => {
+          if (item.menu_category === cat.key) {
+            totalOrder += (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
+          }
+        });
+        omzetPerDay[dateStr] = (omzetPerDay[dateStr] || 0) + totalOrder;
+      });
+      return {
+        label: cat.label,
+        data: allDates.map(date => omzetPerDay[date]),
+        backgroundColor: cat.color,
+        fill: true,
+      };
+    });
 
     setChartData({
-      labels,
-      datasets: [
-        {
-          label: "Total Sales",
-          data: salesData,
-          backgroundColor: ["#0E43AF", "#3572EF", "#C2D4FA"],
-          fill: true,
-        },
-      ],
+      labels: allDates,
+      datasets,
     });
-  }, [data]);
+  }, [data, startDate, endDate, selectedCategory]);
 
   // Open stat per category
   const openStatDetail = async (category) => {
@@ -172,17 +210,47 @@ export default function Dashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard title="Total Orders" value={totalOrders} iconSrc="/assets/icons/receipt.svg" />
-        <StatCard title="Total Omzet" value={totalOmzet} iconSrc="/assets/icons/wallet-money.svg" />
+  <StatCard title="Total Omzet" value={totalOmzet} iconSrc="/assets/icons/wallet-money.svg" />
         <StatCard title="All Menu Orders" value={allMenuOrders} iconSrc="/assets/icons/document.svg" />
         <StatCard title="Foods" value={totalFoodOrders} iconSrc="/assets/icons/reserve.svg" detailOnClick={() => openStatDetail("food")} />
         <StatCard title="Beverages" value={totalBeverageOrders} iconSrc="/assets/icons/coffee.svg" detailOnClick={() => openStatDetail("beverage")} />
         <StatCard title="Desserts" value={totalDessertOrders} iconSrc="/assets/icons/cake.svg" detailOnClick={() => openStatDetail("dessert")} />
       </div>
 
-      {/* Chart Section */}
+      {/* Chart Section: Satu chart, per tanggal ada 3 bar (foods, beverages, desserts) */}
       <div className="bg-white p-4 rounded-xl shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-lg font-medium">Total Omzet</h4>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+          <h4 className="text-lg font-medium">Total Omzet Per Hari & Kategori</h4>
+          <div className="flex flex-wrap gap-2 items-center">
+            <input
+              type="date"
+              className="border rounded px-2 py-1 text-sm"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              placeholder="Start Date"
+              style={{ minWidth: 120 }}
+            />
+            <span className="mx-1">-</span>
+            <input
+              type="date"
+              className="border rounded px-2 py-1 text-sm"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              placeholder="End Date"
+              style={{ minWidth: 120 }}
+            />
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              style={{ minWidth: 120 }}
+            >
+              <option value="">All Category</option>
+              <option value="food">Foods</option>
+              <option value="beverage">Beverages</option>
+              <option value="dessert">Desserts</option>
+            </select>
+          </div>
         </div>
         <Bar data={chartData} />
       </div>
@@ -219,3 +287,10 @@ export default function Dashboard() {
     </div>
   );
 }
+
+  const formatRupiah = (amount) => {
+    if (amount === null || amount === undefined || isNaN(amount)) return "0";
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+export default Dashboard;

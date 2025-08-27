@@ -281,8 +281,8 @@ export default function Dashboard() {
                 {item.description}
               </p>
               <div className="flex items-center justify-between mt-2">
-                <p className="text-[var(--blue1-main)] font-semibold text-sm">
-                  {item.price}
+                <p className="text-[var(--blue1-main)] font-semibold text-sm flex items-center gap-1">
+                  Rp {parseInt(item.price).toLocaleString('id-ID')} <span className="text-xs text-gray-400">/portion</span>
                 </p>
                 <button
                   onClick={(e) => {
@@ -409,7 +409,7 @@ export default function Dashboard() {
                   <div>
                     <p className="font-semibold">{item.name}</p>
                     <p className="text-sm text-gray-400">
-                      Rp {parseInt(item.price).toLocaleString()}
+                      Rp {parseInt(item.price).toLocaleString('id-ID')}
                     </p>
 
                     <div className="flex items-center gap-2 mt-1">
@@ -486,25 +486,39 @@ export default function Dashboard() {
               <div className="bg-[var(--neutral-grey1)] p-6">
                 <div className="flex justify-between font-semibold mb-2">
                   <span>Subtotal</span>
-                  <span>Rp {subtotal.toLocaleString()}</span>
+                  <span>Rp {subtotal.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex justify-between mb-2">
                   <span>Tax</span>
-                  <span>Rp {tax.toLocaleString()}</span>
+                  <span>Rp {tax.toLocaleString('id-ID')}</span>
                 </div>
                 <hr className="border border-dashed border-[var(--neutral-grey3)] mb-4 mt-4" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>Rp {total.toLocaleString()}</span>
+                  <span>Rp {total.toLocaleString('id-ID')}</span>
                 </div>
               </div>
 
               <div className="mt-4">
                 <h3 className="font-semibold mb-2">Select Nominal</h3>
+                {/* Quick select buttons */}
+                <div className="flex gap-2 mb-2">
+                  {[50000, 75000, 100000].map((nominal) => (
+                    <button
+                      key={nominal}
+                      type="button"
+                      className={`flex-1 py-2 rounded-md border text-sm font-semibold transition-colors ${amountReceived === nominal ? 'bg-blue-500 text-white border-blue-500' : 'border-blue-500 text-blue-500 hover:bg-blue-100'}`}
+                      onClick={() => setAmountReceived(nominal)}
+                    >
+                      Rp {nominal.toLocaleString('id-ID')}
+                    </button>
+                  ))}
+                </div>
+                <div className="mb-1 text-xs text-gray-400 text-center">atau masukkan nominal manual</div>
                 {/* input manual */}
                 <input
                   type="number"
-                  value={amountReceived === null ? "" : amountReceived} 
+                  value={amountReceived === null ? "" : amountReceived}
                   onChange={(e) => {
                     const inputValue = e.target.value;
                     if (inputValue === "") {
@@ -635,10 +649,14 @@ export default function Dashboard() {
             </button>
 
             <h2 className="text-3xl text-center font-medium mb-2 mt-2">
-              Transaction Details
+              Transaction Success
             </h2>
 
             <div id="receipt-area" className="bg-[var(--neutral-grey1)] p-4 rounded-md">
+              <div className="text-center border-b pb-2">
+                <h2 className="text-lg font-bold tracking-widest">PADIPOS</h2>
+                <div className="text-xs text-gray-500">Jl. Sinau Koding No. 2025</div>
+              </div>
               <p className="text-[var(--neutral-grey7)] text-sm mb-1">
                 <span className="text-[var(--neutral-grey6)] font-light">Order Type: </span>
                 {orderData.order_type === "dine_in" ? "Dine In" : orderData.order_type === "take_away" ? "Take Away" : "-"}
@@ -664,7 +682,7 @@ export default function Dashboard() {
                   orderData.items.map((item, index) => (
                     <li key={index} className="mb-2">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '16px', fontWeight: 'normal' }}>{item.quantity} x {formatRupiah(item.price)}</span>
+                        <span style={{ fontSize: '16px', fontWeight: 'normal' }}>{item.quantity} x {item.name || item.menu_name || item.nama_menu || '-'}</span>
                         <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{formatRupiah(item.price * item.quantity)}</span>
                       </div>
                     </li>
@@ -719,6 +737,9 @@ export default function Dashboard() {
                       printWindow.document.write('<style>body{font-family:sans-serif;padding:16px;} .struk-title{text-align:center;font-size:24px;font-weight:bold;margin-bottom:16px;} .struk-footer{text-align:center;margin-top:32px;font-size:16px;font-weight:bold;} .struk-section{margin-bottom:8px;} .struk-label{font-weight:bold;} .struk-value{float:right;} .struk-list{margin:8px 0;} .struk-total{font-size:18px;font-weight:bold;}</style>');
                       printWindow.document.write('</head><body>');
                       // Tambahkan header
+                      // Pastikan header toko di tengah
+                      const header = clone.querySelector('.border-b');
+                      if (header) header.style.textAlign = 'center';
                       printWindow.document.write('<div class="struk-title">Struk Transaksi</div>');
                       printWindow.document.write(clone.innerHTML);
                       // Tambahkan ucapan di bawah

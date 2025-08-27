@@ -25,6 +25,12 @@ export default function Catalog() {
     description: "",
   });
 
+  // Format angka ke format rupiah dengan titik ribuan, tanpa simbol
+  const formatRupiah = (amount) => {
+    if (amount === null || amount === undefined || isNaN(amount)) return "0";
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   // Handle form changes
   const handleFormChange = (e) => {
     const { name, value, type, files } = e.target;
@@ -194,12 +200,13 @@ export default function Catalog() {
               <p className="text-xs font-light text-[var(--neutral-grey5)]">{item.description}</p>
               <div className="flex items-center justify-between mt-2">
                 <p className="text-[var(--blue1-main)] font-semibold text-sm">
-                  {item.price}{" "}
+                  Rp {formatRupiah(item.price)}{' '}
                   <span className="text-[var(--neutral-grey5)] font-light text-xs">/ portion</span>
                 </p>
                 <div className="flex gap-2">
                   <button
-                    className="bg-yellow-400 text-white px-2 py-1 rounded text-xs"
+                    className="p-2 bg-yellow-100 hover:bg-yellow-200 rounded"
+                    title="Edit"
                     onClick={() => {
                       setSelectedMenu(item);
                       setIsEditMode(true);
@@ -212,11 +219,16 @@ export default function Catalog() {
                         description: item.description,
                       });
                     }}
-                  >Edit</button>
+                  >
+                    <img src="/assets/icons/edit-2.svg" alt="Edit" width={16} height={16} />
+                  </button>
                   <button
-                    className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                    className="p-2 bg-red-100 hover:bg-red-200 rounded"
+                    title="Delete"
                     onClick={() => deleteMenuItem(item.id)}
-                  >Delete</button>
+                  >
+                    <img src="/assets/icons/trash.svg" alt="Delete" width={16} height={16} />
+                  </button>
                   <button
                     onClick={() => {
                       if (selectedMenu && selectedMenu.id === item.id) {

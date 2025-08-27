@@ -276,6 +276,10 @@ export default function SalesReport() {
               </h2>
               <div className="bg-[var(--neutral-grey1)] p-4 rounded-md">
                 <p className="text-[var(--neutral-grey7)] text-sm mb-1">
+                  <span className="text-[var(--neutral-grey6)] font-light">Order Type: </span>
+                  {selectedTransaction.order_type === "dine_in" ? "Dine In" : selectedTransaction.order_type === "take_away" ? "Take Away" : "-"}
+                </p>
+                <p className="text-[var(--neutral-grey7)] text-sm mb-1">
                   <span className="text-[var(--neutral-grey6)] font-light">No Order: </span>
                   {selectedTransaction.no_order ?? selectedTransaction.noOrder ?? "-"}
                 </p>
@@ -287,78 +291,59 @@ export default function SalesReport() {
                   <span className="text-[var(--neutral-grey6)] font-light">Customer Name: </span>
                   {selectedTransaction.customer_name ?? selectedTransaction.customer ?? "-"}
                 </p>
-                <p className="text-[var(--neutral-grey7)] text-sm mb-1">
-                  <span className="text-[var(--neutral-grey6)] font-light">Order Type: </span>
-                  {selectedTransaction.order_type === "dine_in" ? "Dine In" : selectedTransaction.order_type === "take_away" ? "Take Away" : "-"}
-                </p>
+                <p className="text-sm mb-1">{selectedTransaction.type}</p>
 
                 <hr className=" border-t border-[var(--neutral-grey2)] mb-4" />
 
+
                 <ul>
-                  {selectedTransaction.items.map((item, index) => (
-                    <li
-                      key={index}
-                      className="flex justify-between items-center mb-2"
-                    >
-                      <div className="flex flex-col items-start">
-                        <span className="text-2xl font-medium">
-                          {item.name}
-                        </span>
-                        <span className="text-xs text-[var(--neutral-grey7)]">
-                          {item.quantity} x {formatRupiah(item.price)}
-                        </span>
-                      </div>
-                      <span className="text-sm font-medium">
-                        {formatRupiah(item.price * item.quantity)}
-                      </span>
-                    </li>
-                  ))}
+                  {selectedTransaction?.items?.map ? (
+                    selectedTransaction.items.map((item, index) => (
+                      <li key={index} className="mb-2">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold">{item.quantity} x {item.name || item.menu_name || item.nama_menu || '-'}</span>
+                              <span className="text-right font-semibold">{formatRupiah(item.price * item.quantity)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-gray-500">
+                              {item.notes && <span className="italic">Catatan: {item.notes}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))
+                  ) : (
+                    <li>Order detail tidak tersedia.</li>
+                  )}
                 </ul>
 
                 <hr className=" border border-dashed border-[var(--neutral-grey3)] mb-4 mt-4" />
 
-                {/* Sub Total, Tax, Total, Kembalian */}
+                {/* Sub Total, Tax, Total, Diterima, Kembalian */}
                 {selectedTransaction && (
                   <>
-                    <p className="flex justify-between items-center text-sm mb-2">
-                      <span className="text-[var(--neutral-grey5)]">
-                        Sub Total
-                      </span>
-                      <span className="text-[var(--neutral-grey7)]">
-                        {formatRupiah(Number(selectedTransaction.sub_total ?? selectedTransaction.subTotal ?? 0))}
-                      </span>
-                    </p>
-                    <p className="flex justify-between items-center text-sm mb-2">
-                      <span className="text-[var(--neutral-grey5)]">Tax</span>
-                      <span className="text-[var(--neutral-grey7)]">
-                        {formatRupiah(Number(selectedTransaction.tax ?? 0))}
-                      </span>
-                    </p>
-
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                      <span>Sub Total</span>
+                      <span>{formatRupiah(Number(selectedTransaction.sub_total ?? selectedTransaction.subTotal ?? 0))}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                      <span>Tax</span>
+                      <span>{formatRupiah(Number(selectedTransaction.tax ?? 0))}</span>
+                    </div>
                     <hr className="border border-dashed border-[var(--neutral-grey3)] mb-4 mt-4" />
-
-                    <p className="flex justify-between items-center mb-4">
-                      <span className="text-lg">Total</span>
-                      <span className="text-xl font-semibold">
-                        {formatRupiah(Number(selectedTransaction.total ?? 0))}
-                      </span>
-                    </p>
-                    <p className="flex justify-between items-center text-sm mb-2">
-                      <span className="text-[var(--neutral-grey5)]">
-                        Diterima
-                      </span>
-                      <span className="text-black">
-                        {formatRupiah(Number(selectedTransaction.amount_received ?? selectedTransaction.amountReceived ?? 0))}
-                      </span>
-                    </p>
-                    <p className="flex justify-between items-center text-sm">
-                      <span className="text-[var(--neutral-grey5)]">
-                        Kembalian
-                      </span>
-                      <span className="text-black">
-                        {formatRupiah(Number(selectedTransaction.amount_change ?? selectedTransaction.amountChange ?? 0))}
-                      </span>
-                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+                      <span>Total</span>
+                      <span>{formatRupiah(Number(selectedTransaction.total ?? 0))}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                      <span>Diterima</span>
+                      <span>{formatRupiah(Number(selectedTransaction.amount_received ?? selectedTransaction.amountReceived ?? 0))}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '16px', marginBottom: '4px' }}>
+                      <span>Kembalian</span>
+                      <span>{formatRupiah(Number(selectedTransaction.amount_change ?? selectedTransaction.amountChange ?? 0))}</span>
+                    </div>
                   </>
                 )}
               </div>

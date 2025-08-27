@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
+import { exportToExcel, exportToPDF } from "./exportUtils.jsx";
 
 export default function TransactionTable({
   data,
@@ -90,14 +91,33 @@ export default function TransactionTable({
               >
                 Search
               </button>
-              <button className="w-10 h-10 border border-[var(--neutral-grey5)] rounded-md hover:bg-gray-300 transition flex justify-center items-center">
-                <Image
-                  src="/assets/icons/frame.svg"
-                  alt="export"
-                  width={18}
-                  height={18}
-                />
-              </button>
+              <div className="relative group">
+                <button
+                  className="w-10 h-10 border border-[var(--neutral-grey5)] rounded-md hover:bg-gray-300 transition flex justify-center items-center"
+                  title="Download Report"
+                >
+                  <Image
+                    src="/assets/icons/frame.svg"
+                    alt="download"
+                    width={18}
+                    height={18}
+                  />
+                </button>
+                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-10">
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
+                    onClick={() => exportToExcel(data)}
+                  >
+                    Export to Excel
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
+                    onClick={() => exportToPDF(data)}
+                  >
+                    Export to PDF
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -123,8 +143,20 @@ export default function TransactionTable({
                 <td className="px-4 py-3">
                   {new Date(item.date).toLocaleDateString("id-ID")}
                 </td>
-                <td className="px-4 py-3">{item.order_type}</td>
-                <td className="px-4 py-3">{item.menu_category}</td>
+                <td className="px-4 py-3">
+                  {item.order_type === "dine_in"
+                    ? "Dine In"
+                    : item.order_type === "take_away"
+                    ? "Take Away"
+                    : item.order_type}
+                </td>
+                <td className="px-4 py-3">
+                  {Array.isArray(item.items)
+                    ? [...new Set(item.items.map(i => i.menu_category).filter(Boolean))]
+                        .map(cat => cat.charAt(0).toUpperCase() + cat.slice(1))
+                        .join(", ")
+                    : (item.menu_category || "")}
+                </td>
                 <td className="px-4 py-3">{item.customer_name}</td>
                 <td className="px-4 py-3">
                   <button onClick={() => openTransactionDetail(item)}>
