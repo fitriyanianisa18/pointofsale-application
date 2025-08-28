@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { toast } from "react-toastify";
 
 const categories = [
   { label: "All Menu", value: "all" },
@@ -123,7 +124,7 @@ export default function Dashboard() {
   // Submit Order to backend only
   const handleSubmitOrder = async () => {
     if (orderItems.length === 0 || !customerName || !amountReceived) {
-      alert("Please add items to the order, fill customer details, and provide payment.");
+  toast.error("Please add items to the order, fill customer details, and provide payment.");
       return;
     }
 
@@ -188,7 +189,7 @@ export default function Dashboard() {
         // Refresh menu setelah order
         fetchMenus();
       } else {
-        alert("Failed to submit order.");
+        toast.error("Failed to submit order.");
       }
     } catch (error) {
       console.error("Error submitting order:", error);

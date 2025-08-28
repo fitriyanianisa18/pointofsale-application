@@ -220,7 +220,7 @@ function Dashboard() {
       {/* Chart Section: Satu chart, per tanggal ada 3 bar (foods, beverages, desserts) */}
       <div className="bg-white p-4 rounded-xl shadow-md">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-          <h4 className="text-lg font-medium">Total Omzet Per Hari & Kategori</h4>
+          <h4 className="text-lg font-medium">Total Omzet</h4>
           <div className="flex flex-wrap gap-2 items-center">
             <input
               type="date"

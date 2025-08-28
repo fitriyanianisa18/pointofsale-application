@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { useRouter, usePathname } from "next/navigation";
 import Navbar from "./components/navbar";
 import Sidebar from "./components/sidebar";
@@ -60,28 +61,36 @@ export default function ClientLayout({ children }) {
     };
 
     fetchUser();
+
+    // Event listener global untuk toast sukses
+    const handleToastEvent = (e) => {
+      if (e.detail && e.detail.type === "success") {
+        toast.success(e.detail.message, { autoClose: 3000 });
+      } else if (e.detail && e.detail.type === "error") {
+        toast.error(e.detail.message, { autoClose: 3000 });
+      }
+    };
+    window.addEventListener("show-toast", handleToastEvent);
+    return () => window.removeEventListener("show-toast", handleToastEvent);
   }, [router, isAuthPage]);
 
-  // halaman auth tidak perlu navbar/sidebar
-  if (isAuthPage) return <main>{children}</main>;
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  // render layout sesuai role
-  if (userRole === "admin" || userRole === "cashier") {
-    return (
-      <>
-        <Sidebar />
-        <div className="ml-52 flex-1 flex flex-col min-h-screen bg-[var(--neutral-grey1)]">
-          <Navbar />
-          <main className="p-6">{children}</main>
-        </div>
-      </>
-    );
-  }
-
-  // role tidak dikenali
-  return <div className="flex items-center justify-center h-screen">Unauthorized</div>;
+  return (
+    <>
+      {isAuthPage ? (
+        <main>{children}</main>
+      ) : loading ? (
+        <div className="flex items-center justify-center h-screen">Loading...</div>
+      ) : (userRole === "admin" || userRole === "cashier") ? (
+        <>
+          <Sidebar />
+          <div className="ml-52 flex-1 flex flex-col min-h-screen bg-[var(--neutral-grey1)]">
+            <Navbar />
+            <main className="p-6">{children}</main>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-screen">Unauthorized</div>
+      )}
+    </>
+  );
 }
