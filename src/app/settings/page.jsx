@@ -4,6 +4,47 @@ import Image from "next/image";
 // import Cookies from "js-cookie";
 
 export default function Settings() {
+  // Appearance
+function applyAppearance({ mode, fontSize, zoom }) {
+  if (mode === "dark") {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+  document.documentElement.style.fontSize = fontSize;
+  document.body.style.zoom = zoom + "%";
+}
+
+  // Appearance state
+  const [appearance, setAppearance] = useState(() => {
+    if (typeof window !== "undefined") {
+      return {
+        mode: localStorage.getItem("appearance_mode") || "light",
+        fontSize: localStorage.getItem("appearance_fontSize") || "16px",
+        zoom: localStorage.getItem("appearance_zoom") || "100",
+      };
+    }
+    return { mode: "light", fontSize: "16px", zoom: "100" };
+  });
+
+  useEffect(() => {
+    applyAppearance({
+      mode: appearance.mode,
+      fontSize: localStorage.getItem("appearance_fontSize") || "16px",
+      zoom: localStorage.getItem("appearance_zoom") || "100"
+    });
+    localStorage.setItem("appearance_mode", appearance.mode);
+  }, [appearance.mode]);
+
+  // Handler untuk Save Changes (appearance)
+  const handleAppearanceSave = (e) => {
+    e.preventDefault();
+    applyAppearance(appearance);
+    localStorage.setItem("appearance_mode", appearance.mode);
+    localStorage.setItem("appearance_fontSize", appearance.fontSize);
+    localStorage.setItem("appearance_zoom", appearance.zoom);
+  };
+
   const [user, setUser] = useState(null);
   const [success, setSuccess] = useState(false);
   const [picture, setPicture] = useState(null); // path gambar user
@@ -241,13 +282,6 @@ export default function Settings() {
             />
           </div>
         </div>
-
-        <button
-          type="submit"
-          className="mt-4 px-4 py-2 bg-[var(--blue1-main)] border border-[var(--blue1-main)] rounded-xl text-sm text-white hover:bg-blue-700"
-        >
-          Save Changes
-        </button>
       </form>
 
       {/* Password */}
@@ -285,6 +319,63 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+    {/* Appearance Settings */}
+    <hr className="my-4 border-t border-gray-200" />
+    <div className="space-y-4">
+      <h2 className="text-xl font-medium">Appearance</h2>
+      <div className="grid grid-cols-3 gap-4">
+        {/* Preference Mode */}
+        <div>
+          <label className="text-sm text-[var(--neutral-grey7)]">Preference Mode</label>
+          <select
+            className="w-full mt-1 p-2 bg-white border border-[var(--neutral-grey4)] rounded-lg text-sm"
+            value={appearance.mode}
+            onChange={e => setAppearance(a => ({ ...a, mode: e.target.value }))}
+          >
+            <option value="light">Light Mode</option>
+            <option value="dark">Dark Mode</option>
+          </select>
+        </div>
+        {/* Font Size */}
+        <div>
+          <label className="text-sm text-[var(--neutral-grey7)]">Font Size</label>
+          <select
+            className="w-full mt-1 p-2 bg-white border border-[var(--neutral-grey4)] rounded-lg text-sm"
+            value={appearance.fontSize}
+            onChange={e => setAppearance(a => ({ ...a, fontSize: e.target.value }))}
+          >
+            <option value="14px">14 px</option>
+            <option value="16px">16 px</option>
+            <option value="18px">18 px</option>
+            <option value="20px">20 px</option>
+            <option value="24px">24 px</option>
+          </select>
+        </div>
+        {/* Zoom Display */}
+        <div>
+          <label className="text-sm text-[var(--neutral-grey7)]">Zoom Display</label>
+          <select
+            className="w-full mt-1 p-2 bg-white border border-[var(--neutral-grey4)] rounded-lg text-sm custom-scroll-select"
+            value={appearance.zoom}
+            onChange={e => setAppearance(a => ({ ...a, zoom: e.target.value }))}
+          >
+            <option value="120">120</option>
+            <option value="110">110</option>
+            <option value="100">100 (Normal)</option>
+            <option value="90">90</option>
+            <option value="80">80</option>
+          </select>
+        </div>
+      </div>
     </div>
+  <button
+    type="button"
+    onClick={handleAppearanceSave}
+    className="mt-10 px-10 py-4 bg-[var(--blue1-main)] border border-[var(--blue1-main)] rounded-xl text-m text-white hover:bg-blue-700"
+    >
+      Save Changes
+  </button>
+  </div>
   );
 }
