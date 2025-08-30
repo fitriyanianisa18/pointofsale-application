@@ -13,5 +13,7 @@ router.post('/logout', logoutMiddleware, authController.logout);
 router.get('/me', authenticateToken, authController.getCurrentUser);
 router.put('/update-profile', authenticateToken, authController.updateProfile);
 router.post('/upload-picture', authenticateToken, upload.single('picture'), authController.uploadPicture);
+router.post('/forgot-password', authController.forgotPassword); 
+router.post('/reset-password', authController.resetPassword); 
 
 module.exports = router;

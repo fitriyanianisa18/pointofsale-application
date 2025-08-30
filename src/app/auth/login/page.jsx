@@ -134,7 +134,7 @@ export default function Login() {
               </div>
             </div>
             <div className="text-right text-xs text-gray-500 mb-6">
-              <a href="#" className="hover:underline">
+              <a href="/auth/reset-password" className="hover:underline">
                 Forget Password?
               </a>
             </div>

@@ -1,3 +1,5 @@
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
@@ -5,6 +7,64 @@ require('dotenv').config();
 const validator = require('validator');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const resetTokens = {};
+
+// Kirim email reset password
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: 'Email is required.' });
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ message: 'Email not found.' });
+
+    // Generate token
+    const token = crypto.randomBytes(32).toString('hex');
+    resetTokens[token] = { userId: user.id, expires: Date.now() + 1000 * 60 * 15 }; // 15 menit
+
+    // Kirim email (Gmail SMTP)
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/new-password?token=${token}`;
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: 'Reset Password',
+      html: `<p>Click the following link to reset your password: <a href="${resetUrl}">${resetUrl}</a></p>`
+    });
+    return res.json({ message: 'A password reset link has been sent to your email.' });
+  } catch (err) {
+    console.error("Forgot password error:", err, err?.response?.body || '');
+    return res.status(500).json({ 
+      message: 'Failed to send password reset email.', 
+      error: err?.message, 
+      detail: err?.response?.body 
+    });
+  }
+};
+
+// Set password baru
+exports.resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ message: 'Token and password must be filled in.' });
+  const data = resetTokens[token];
+  if (!data || data.expires < Date.now()) return res.status(400).json({ message: 'Token is invalid or expired.' });
+  try {
+    const hashed = await bcrypt.hash(password, 10);
+    await prisma.user.update({ where: { id: data.userId }, data: { password: hashed } });
+    delete resetTokens[token];
+    return res.json({ message: 'Password successfully reset.' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Password reset failed.' });
+  }
+};
 
 // opsi cookie untuk JWT
 const cookieOptions = {
